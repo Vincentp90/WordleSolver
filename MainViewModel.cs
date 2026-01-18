@@ -1,0 +1,158 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Text;
+using System.Windows.Input;
+
+namespace WordleSolver
+{
+    public class MainViewModel : INotifyPropertyChanged
+    {
+        private readonly Random _random = new Random();
+        public ObservableCollection<ObservableCollection<Tile>> Board { get; } = new();
+        public ObservableCollection<KeyboardKey> KeyboardKeys { get; set; }
+
+        private string _feedback;
+        public string Feedback
+        {
+            get => _feedback;
+            set
+            {
+                if (_feedback != value)
+                {
+                    _feedback = value;
+                    OnPropertyChanged(nameof(Feedback));
+                }
+            }
+        }
+
+        private string _currentGuess = "";
+        private string _answer;
+        private int _wordLength = 5;
+        private int _totalGuesses = 6;
+
+        public MainViewModel()
+        {
+            InitBoard();
+            InitKeyBoard();
+            _answer = App.CommonWords[_random.Next(App.CommonWords.Count)].ToUpper();
+        }
+
+        private void InitBoard()
+        {
+            Board.Clear();
+            for (int r = 0; r < _totalGuesses; r++)
+            {
+                var row = new ObservableCollection<Tile>();
+                for (int c = 0; c < _wordLength; c++)
+                    row.Add(new Tile());
+                Board.Add(row);
+            }
+        }
+
+        private void InitKeyBoard()
+        {
+            KeyboardKeys?.Clear();
+            KeyboardKeys = new(
+                new[] {"q", "w", "e", "r", "t", "y", "u", "i", "o", "p",
+                    "a", "s", "d", "f", "g", "h", "j", "k", "l",
+                    "z", "x", "c", "v", "b", "n", "m",
+                    "ä", "ö", "ü", "ß", "Delete", "Enter", "Reset" }.Select(k => new KeyboardKey(k)));
+        }
+
+        public void KeyPressed(string key)
+        {
+            if (key == "Enter")
+            {
+                SubmitGuess();
+            }
+            else if (key == "Delete")
+            {
+                if (_currentGuess.Length > 0)
+                {
+                    _currentGuess = _currentGuess[..^1];
+                    UpdateCurrentRow();
+                }
+            }
+            else if(key == "Reset")
+            {
+                ResetState();
+            }
+            else if (_currentGuess.Length < _wordLength)
+            {
+                _currentGuess += key.ToUpper();
+                UpdateCurrentRow();
+            }
+        }
+
+        private void ResetState()
+        {
+            InitBoard();
+            InitKeyBoard();
+            _currentGuess = "";
+            _answer = App.CommonWords[_random.Next(App.CommonWords.Count)];
+            _feedback = "";
+        }
+
+        private void UpdateCurrentRow()
+        {
+            var row = Board.First(r => r.Any(t => string.IsNullOrEmpty(t.Letter) || t.State == TileState.Empty));
+            for (int i = 0; i < _wordLength; i++)
+            {
+                row[i].Letter = i < _currentGuess.Length ? _currentGuess[i].ToString() : "";
+            }
+        }
+
+        private void SubmitGuess()
+        {
+            if (_currentGuess.Length != _wordLength) return;
+
+            if (!App.AllWords.Contains(_currentGuess.ToLower()))
+            {
+                Feedback = "Word does not exist!";
+                return;
+            }
+            else
+                Feedback = "";
+
+            var row = Board.First(r => r.Any(t => string.IsNullOrEmpty(t.Letter) || t.State == TileState.Empty));
+
+            for (int i = 0; i < _wordLength; i++)
+            {
+                if (_currentGuess[i] == _answer[i])
+                    row[i].State = TileState.Correct;
+                else if (_answer.Contains(_currentGuess[i]))
+                    row[i].State = TileState.Present;
+                else
+                    row[i].State = TileState.Absent;
+            }
+            UpdateKeyboard(_currentGuess);
+            _currentGuess = "";
+        }
+
+        private void UpdateKeyboard(string guess)
+        {
+            for (int i = 0; i < _wordLength; i++)
+            {
+                var key = KeyboardKeys.FirstOrDefault(k => k.Letter == guess[i].ToString().ToLower());
+                if (key == null) continue;
+
+                if (_answer[i] == guess[i])
+                    key.State = KeyState.Correct;
+                else if (_answer.Contains(guess[i]) && key.State != KeyState.Correct)
+                    key.State = KeyState.Present;
+                else if (key.State == KeyState.Unknown)
+                    key.State = KeyState.Absent;
+            }
+        }
+
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+    }
+
+}
