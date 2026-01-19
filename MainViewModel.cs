@@ -9,9 +9,10 @@ namespace WordleSolver
 {
     public class MainViewModel : INotifyPropertyChanged
     {
+        #region Worlde Properties
         private readonly Random _random = new Random();
         public ObservableCollection<ObservableCollection<Tile>> Board { get; } = new();
-        public ObservableCollection<KeyboardKey> KeyboardKeys { get; set; }
+        public ObservableCollection<KeyboardKey> KeyboardKeys { get; } = new();
 
         private string _feedback;
         public string Feedback
@@ -31,14 +32,40 @@ namespace WordleSolver
         private string _answer;
         private int _wordLength = 5;
         private int _totalGuesses = 6;
+        #endregion
+
+        #region Solver Properties
+        private string _specificWord;
+        public string SpecificWord
+        {
+            get => _specificWord;
+            set
+            {
+                if (_specificWord != value)
+                {
+                    _specificWord = value;
+                    OnPropertyChanged(nameof(SpecificWord));
+                }
+            }
+        }
+
+        public ICommand ResetSpecificWordCommand { get; }
+        #endregion
+
 
         public MainViewModel()
         {
             InitBoard();
             InitKeyBoard();
             _answer = App.CommonWords[_random.Next(App.CommonWords.Count)].ToUpper();
+
+            ResetSpecificWordCommand = new RelayCommand(
+                    _ => ResetSpecificWord(),
+                    _ => true
+                );
         }
 
+        #region Worlde Methods
         private void InitBoard()
         {
             Board.Clear();
@@ -53,12 +80,17 @@ namespace WordleSolver
 
         private void InitKeyBoard()
         {
-            KeyboardKeys?.Clear();
-            KeyboardKeys = new(
-                new[] {"q", "w", "e", "r", "t", "y", "u", "i", "o", "p",
-                    "a", "s", "d", "f", "g", "h", "j", "k", "l",
-                    "z", "x", "c", "v", "b", "n", "m",
-                    "ä", "ö", "ü", "ß", "Delete", "Enter", "Reset" }.Select(k => new KeyboardKey(k)));
+            KeyboardKeys.Clear();
+            foreach (var k in new[]
+            {
+                "q","w","e","r","t","y","u","i","o","p",
+                "a","s","d","f","g","h","j","k","l",
+                "z","x","c","v","b","n","m",
+                "ä","ö","ü","ß","Delete","Enter","Reset"
+            })
+            {
+                KeyboardKeys.Add(new KeyboardKey(k));
+            }
         }
 
         public void KeyPressed(string key)
@@ -146,7 +178,15 @@ namespace WordleSolver
                     key.State = KeyState.Absent;
             }
         }
+        #endregion
 
+        #region Solver Methods
+        private void ResetSpecificWord()
+        {
+            ResetState();
+            _answer = SpecificWord.ToUpper();
+        }
+        #endregion
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name)
