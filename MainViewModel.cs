@@ -9,7 +9,7 @@ namespace WordleSolver
 {
     public class MainViewModel : INotifyPropertyChanged
     {
-        #region Worlde Properties
+        #region Wordle Properties
         private readonly Random _random = new Random();
         public ObservableCollection<ObservableCollection<Tile>> Board { get; } = new();
         public ObservableCollection<KeyboardKey> KeyboardKeys { get; } = new();
@@ -35,6 +35,8 @@ namespace WordleSolver
         #endregion
 
         #region Solver Properties
+        private Solver _solver;
+
         private string _specificWord;
         public string SpecificWord
         {
@@ -48,6 +50,21 @@ namespace WordleSolver
                 }
             }
         }
+
+        private string _autoGuess;
+        public string AutoGuess
+        {
+            get => _autoGuess;
+            set
+            {
+                if (_autoGuess != value)
+                {
+                    _autoGuess = value;
+                    OnPropertyChanged(nameof(AutoGuess));
+                }
+            }
+        }
+        public ICommand AutoGuessCommand { get; }
 
         public ICommand ResetSpecificWordCommand { get; }
         #endregion
@@ -63,9 +80,17 @@ namespace WordleSolver
                     _ => ResetSpecificWord(),
                     _ => true
                 );
+
+            AutoGuessCommand = new RelayCommand(
+                    _ => DoAutoGuess(),
+                    _ => true
+                );
+
+            _solver = new Solver(_wordLength);
+            AutoGuess = _solver.Iterate();
         }
 
-        #region Worlde Methods
+        #region Wordle Methods
         private void InitBoard()
         {
             Board.Clear();
@@ -125,6 +150,9 @@ namespace WordleSolver
             _currentGuess = "";
             _answer = App.CommonWords[_random.Next(App.CommonWords.Count)];
             _feedback = "";
+
+            _solver = new Solver(_wordLength);
+            _autoGuess = _solver.Iterate();
         }
 
         private void UpdateCurrentRow()
@@ -160,6 +188,9 @@ namespace WordleSolver
                     row[i].State = TileState.Absent;
             }
             UpdateKeyboard(_currentGuess);
+
+            AutoGuess = _solver.Iterate(row);
+
             _currentGuess = "";
         }
 
@@ -185,6 +216,13 @@ namespace WordleSolver
         {
             ResetState();
             _answer = SpecificWord.ToUpper();
+        }
+
+        private void DoAutoGuess()
+        {
+            foreach(var letter in _autoGuess)
+                KeyPressed(letter.ToString());
+            KeyPressed("Enter");
         }
         #endregion
 
