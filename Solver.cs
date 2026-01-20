@@ -14,9 +14,10 @@ namespace WordleSolver
         private char[] _correctChars;
         private HashSet<char> _unknownChars = new HashSet<char>() {
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-            'ä', 'ö', 'ü', 'ß'
+            'ä', 'ö', 'ü', 'ß', 'é'
         };
-        private HashSet<char> _knownChars = new HashSet<char>();
+        private HashSet<char> _presentChars = new HashSet<char>();
+        private List<IEnumerable<Tile>> _guessHistory = new List<IEnumerable<Tile>>();
 
         public Solver(int wordLength)
         {
@@ -29,6 +30,7 @@ namespace WordleSolver
             string guess;
             if (_iteration > 0 && madeGuessTiles != null)
             {
+                _guessHistory.Add(madeGuessTiles);
                 RemoveUnknowns(madeGuessTiles);
                 SetCorrectChars(madeGuessTiles);
             }
@@ -73,8 +75,8 @@ namespace WordleSolver
                 if (madeGuessTiles.ElementAt(i).State == TileState.Absent && _unknownChars.Contains(letter))
                     _unknownChars.Remove(letter);
                 if((madeGuessTiles.ElementAt(i).State == TileState.Present || madeGuessTiles.ElementAt(i).State == TileState.Correct) && 
-                    !_knownChars.Contains(letter))
-                    _knownChars.Add(letter);
+                    !_presentChars.Contains(letter))
+                    _presentChars.Add(letter);
             }
         }
 
@@ -118,8 +120,11 @@ namespace WordleSolver
 
         private string GuessCorrectWord()
         {
-            var filteredWords = App.CommonWords.Where(w => _knownChars.All(w.Contains));
-            filteredWords = App.CommonWords.Where(w => !w.Any(x => !_unknownChars.Contains(x) && !_correctChars.Contains(x)));
+            var filteredWords = App.CommonWords.Where(w => _presentChars.All(w.Contains));
+
+            // If a word has a character that is unpresent (= not unknown and not correct) remove it
+            filteredWords = filteredWords.Where(w => !w.Any(x => !_unknownChars.Contains(x) && !_correctChars.Contains(x)));
+
             foreach (var word in filteredWords)
             {
                 bool isCorrect = true;
@@ -131,10 +136,35 @@ namespace WordleSolver
                         break;
                     }
                 }
-                if(isCorrect)
+                if (isCorrect)
+                    isCorrect = VerifyWithHistory(word);
+                if (isCorrect)
                     return word;
             }
             return "error";
+        }
+
+        private bool VerifyWithHistory(string guess)
+        {
+            // Chars should not be in a position that was marked as present            
+            foreach(var oldGuess in _guessHistory)
+            {
+                for (int i = 0; i < _wordLength; i++)
+                {
+                    if (oldGuess.ElementAt(i).State == TileState.Present && CharAt(oldGuess, i) == guess[i])
+                        return false;
+                }
+            }
+            // Chars should not be in a position that was marked as absent (only possible if appears twice in a guess, otherwise we catch this with earlier logic)
+            foreach (var oldGuess in _guessHistory)
+            {
+                for (int i = 0; i < _wordLength; i++)
+                {
+                    if (oldGuess.ElementAt(i).State == TileState.Absent && CharAt(oldGuess, i) == guess[i])
+                        return false;
+                }
+            }
+            return true;
         }
     }
 }

@@ -72,10 +72,6 @@ namespace WordleSolver
 
         public MainViewModel()
         {
-            InitBoard();
-            InitKeyBoard();
-            _answer = App.CommonWords[_random.Next(App.CommonWords.Count)].ToUpper();
-
             ResetSpecificWordCommand = new RelayCommand(
                     _ => ResetSpecificWord(),
                     _ => true
@@ -86,8 +82,7 @@ namespace WordleSolver
                     _ => true
                 );
 
-            _solver = new Solver(_wordLength);
-            AutoGuess = _solver.Iterate();
+            ResetState();
         }
 
         #region Wordle Methods
@@ -111,7 +106,7 @@ namespace WordleSolver
                 "q","w","e","r","t","y","u","i","o","p",
                 "a","s","d","f","g","h","j","k","l",
                 "z","x","c","v","b","n","m",
-                "ä","ö","ü","ß","Delete","Enter","Reset"
+                "ä","ö","ü","ß","é", "Delete","Enter","Reset"
             })
             {
                 KeyboardKeys.Add(new KeyboardKey(k));
@@ -138,6 +133,11 @@ namespace WordleSolver
             }
             else if (_currentGuess.Length < _wordLength)
             {
+                if (!Board.Any(r => r.First().State == TileState.Empty))
+                {
+                    Feedback = $"Word not guessed, the word was: {_answer}";
+                    return;
+                }
                 _currentGuess += key.ToUpper();
                 UpdateCurrentRow();
             }
@@ -148,7 +148,7 @@ namespace WordleSolver
             InitBoard();
             InitKeyBoard();
             _currentGuess = "";
-            _answer = App.CommonWords[_random.Next(App.CommonWords.Count)];
+            _answer = App.CommonWords[_random.Next(App.CommonWords.Count)].ToUpper();
             _feedback = "";
 
             _solver = new Solver(_wordLength);
@@ -157,7 +157,7 @@ namespace WordleSolver
 
         private void UpdateCurrentRow()
         {
-            var row = Board.First(r => r.Any(t => string.IsNullOrEmpty(t.Letter) || t.State == TileState.Empty));
+            var row = Board.First(r => r.Any(t => t.State == TileState.Empty));            
             for (int i = 0; i < _wordLength; i++)
             {
                 row[i].Letter = i < _currentGuess.Length ? _currentGuess[i].ToString() : "";
@@ -177,21 +177,48 @@ namespace WordleSolver
                 Feedback = "";
 
             var row = Board.First(r => r.Any(t => string.IsNullOrEmpty(t.Letter) || t.State == TileState.Empty));
-
-            for (int i = 0; i < _wordLength; i++)
-            {
-                if (_currentGuess[i] == _answer[i])
-                    row[i].State = TileState.Correct;
-                else if (_answer.Contains(_currentGuess[i]))
-                    row[i].State = TileState.Present;
-                else
-                    row[i].State = TileState.Absent;
-            }
+            EvaluateRow(row);
             UpdateKeyboard(_currentGuess);
 
             AutoGuess = _solver.Iterate(row);
 
             _currentGuess = "";
+        }
+
+        private void EvaluateRow(ObservableCollection<Tile> row)
+        {
+            var remaining = new Dictionary<char, int>();
+
+            foreach (char c in _answer)
+            {
+                if (!remaining.TryAdd(c, 1))
+                    remaining[c]++;
+            }
+            for (int i = 0; i < _wordLength; i++)
+            {
+                if (_currentGuess[i] == _answer[i])
+                {
+                    row[i].State = TileState.Correct;
+                    remaining[_currentGuess[i]]--;
+                }
+            }
+            for (int i = 0; i < _wordLength; i++)
+            {
+                if (row[i].State == TileState.Correct)
+                    continue;
+
+                char c = _currentGuess[i];
+
+                if (remaining.TryGetValue(c, out int count) && count > 0)
+                {
+                    row[i].State = TileState.Present;
+                    remaining[c]--;
+                }
+                else
+                {
+                    row[i].State = TileState.Absent;
+                }
+            }
         }
 
         private void UpdateKeyboard(string guess)
