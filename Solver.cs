@@ -101,21 +101,42 @@ namespace WordleSolver
 
         private string EliminateUnknownsGuess()
         {
-            //Future improvement: weighted chars (common chars higher weight), find word with highest weight
-
             // Find word with most unknowns
-            int max = 0;
+            int maxUnkowns = 0;
+            int maxWeight = 0;
             string guess = App.CommonWords[0];
             foreach (var word in App.CommonWords)
             {
                 int unknowns = word.Distinct().Count(_unknownChars.Contains);
-                if (unknowns > max)
+                // Find word with 1st priority: most unknown characters
+                if (unknowns > maxUnkowns)
                 {
-                    max = unknowns;
+                    maxUnkowns = unknowns;
+                    maxWeight = 0;// Reset weight, we recalculate in next if
                     guess = word;
+                }
+                // 2nd priority: highest weight of unknown characters
+                if (unknowns == maxUnkowns)
+                {
+                    int weight = GetWeight(word.Where(_unknownChars.Contains));
+                    if (weight > maxWeight)
+                    {
+                        maxWeight = weight;
+                        guess = word;
+                    }
                 }
             }
             return guess;
+        }
+
+        private int GetWeight(IEnumerable<char> word)
+        {
+            int weight = 0;
+            foreach (char c in word)
+            {
+                weight += App.CharWeights[c];
+            }
+            return weight;
         }
 
         private string GuessCorrectWord()
