@@ -46,6 +46,8 @@ namespace WordleSolver
                     break;
                 case 3:
                 case 4:
+                    guess = ChooseStrategy34();
+                    break;
                 case 5:
                     guess = GuessCorrectWord();
                     break;
@@ -56,6 +58,62 @@ namespace WordleSolver
 
             _iteration++;
             return guess;
+        }
+
+        private string ChooseStrategy34()
+        {
+            // If we have 4 correct chars -> find how many possible words are left
+            // If 2 or less: just guess with GuessCorrectWord method, we will be sure to find the correct word in the next 2 guesses
+            // If 3 or more: find word with most of those characters that fill in the missing position 
+            // --- If there isn't a word with 2 or more: GuessCorrectWord and hope we are lucky
+            // --- If there is a word with 2 or more: use the word we found 
+
+            var correctCharsCount = _correctChars.Count(c => c != default(char));
+
+            if(correctCharsCount <= 4)
+                return GuessCorrectWord();
+
+            var filteredWords = App.CommonWords.Where(w => _presentChars.All(w.Contains));
+            // If a word has a character that is unpresent (= not unknown and not correct) remove it
+            filteredWords = filteredWords.Where(w => !w.Any(x => !_unknownChars.Contains(x) && !_correctChars.Contains(x)));
+            var possibleWords = filteredWords.Where(w => VerifyWithCorrectHistory(w));
+
+            if(possibleWords.Count() <= 2)
+                return GuessCorrectWord();
+
+            int missingCharIndex = _correctChars.ToList().FindIndex(c => c == default(char));
+            Dictionary<char, int> possibleChars = possibleWords.Select(w => w[missingCharIndex]).GroupBy(c => c).ToDictionary(g => g.Key, g => g.Count());
+
+            string? guess = null;
+            int maxWeight = 0;
+            foreach(var word in App.CommonWords)
+            {
+                if (word.Any(possibleChars.ContainsKey))
+                {
+                    guess = word;
+                    var weight = word.Select(c => possibleChars.ContainsKey(c) ? possibleChars[c] : 0).Sum();
+                    if(weight > maxWeight)
+                    {
+                        maxWeight = weight;
+                        guess = word;
+                    }
+                }
+            }
+
+            if (maxWeight > 1 && guess != null)
+                return guess;
+
+            return GuessCorrectWord();
+        }
+
+        private bool VerifyWithCorrectHistory(string guess)
+        {
+            for (int i = 0; i < _wordLength; i++)
+            {
+                if (_correctChars[i] != default(char) && _correctChars[i] != guess[i])
+                    return false;
+            }
+            return true;
         }
 
         private void SetCorrectChars(IEnumerable<Tile> madeGuessTiles)
@@ -82,6 +140,11 @@ namespace WordleSolver
 
         private char CharAt(IEnumerable<Tile> madeGuessTiles, int index) => madeGuessTiles.ElementAt(index).Letter.ToLower()[0];
 
+        /// <summary>
+        /// Returns a random word with 5 unique characters
+        /// Not using weights to make it more interesting, so we don't make the same guess every game
+        /// </summary>
+        /// <returns>a random word</returns>
         private string FirstGuess()
         {
             int index = _random.Next(App.CommonWords.Count);
