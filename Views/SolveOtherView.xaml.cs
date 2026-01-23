@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using WordleSolver.ViewModel;
 
 namespace WordleSolver.Views
 {
@@ -18,9 +19,13 @@ namespace WordleSolver.Views
     /// </summary>
     public partial class SolveOtherView : UserControl
     {
+        private readonly SolveOtherViewModel _vm;
+
         public SolveOtherView()
         {
             InitializeComponent();
+            _vm = new SolveOtherViewModel();
+            DataContext = _vm;
         }
     }
 }

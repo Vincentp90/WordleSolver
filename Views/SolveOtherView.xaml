@@ -6,7 +6,125 @@
              xmlns:local="clr-namespace:WordleSolver.Views"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <TextBlock Text="Test" FontSize="28" FontWeight="Bold"
-        HorizontalAlignment="Center" VerticalAlignment="Center"
-        Foreground="Red"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="50" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="450"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <ItemsControl ItemsSource="{Binding Board}" Grid.Row="0" Grid.Column="0" Margin="25,10,10,10">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <ItemsControl ItemsSource="{Binding}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Width="56" Height="56" Margin="4"
+                                    Command="{Binding CycleStateCommand}"
+                                    Focusable="False"
+                                    BorderThickness="2"
+                                    BorderBrush="#444">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#121213"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding State}" Value="Correct">
+                                                    <Setter Property="Background" Value="Green"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State}" Value="Present">
+                                                    <Setter Property="Background" Value="Goldenrod"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State}" Value="Absent">
+                                                    <Setter Property="Background" Value="Gray"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+
+                                    <TextBlock Text="{Binding Letter}"
+                                       FontSize="28"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="White"/>
+                                </Button>
+
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Feedback}"
+           FontSize="16"
+           FontWeight="Bold"
+           Foreground="Red"
+           HorizontalAlignment="Center"
+           Margin="0,8,0,8"/>
+
+        <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Center" Margin="10">
+            <ItemsControl ItemsSource="{Binding KeyboardKeys}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel HorizontalAlignment="Center"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Content="{Binding Letter}"
+                            Width="36"
+                            Height="48"
+                            Margin="2"
+                            Focusable="False">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="#3A3A3C"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding State}" Value="Correct">
+                                            <Setter Property="Background" Value="Green"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Present">
+                                            <Setter Property="Background" Value="Goldenrod"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Absent">
+                                            <Setter Property="Background" Value="Gray"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10">
+                <Button Content="RunSolver" Width="Auto" Height="40" Margin="2" Focusable="False" Command="{Binding RunSolverCommand}" />
+            </StackPanel>
+            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10">
+                <TextBlock Width="200" Text="{Binding AutoGuess}" />
+                <Button Content="ConfirmGuess" Width="Auto" Height="40" Margin="2" Focusable="False" Command="{Binding ConfirmGuessCommand}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
 </UserControl>
