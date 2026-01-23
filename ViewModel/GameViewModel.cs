@@ -5,9 +5,9 @@ using System.ComponentModel;
 using System.Text;
 using System.Windows.Input;
 
-namespace WordleSolver
+namespace WordleSolver.ViewModel
 {
-    public class MainViewModel : INotifyPropertyChanged
+    public class GameViewModel : INotifyPropertyChanged
     {
         #region Wordle Properties
         private readonly Random _random = new Random();
@@ -70,7 +70,7 @@ namespace WordleSolver
         #endregion
 
 
-        public MainViewModel()
+        public GameViewModel()
         {
             ResetSpecificWordCommand = new RelayCommand(
                     _ => ResetSpecificWord(),
